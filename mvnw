@@ -70,7 +70,7 @@ case "$(uname)" in
 esac
 
 if [ -z "$JAVA_HOME" ] ; then
-  if [ -r /etc/gentoo-release ] ; then
+  if [ -r /etc/gentoo ] ; then
     JAVA_HOME=$(java-config --jre-home)
   fi
 fi
