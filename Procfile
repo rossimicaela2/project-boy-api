@@ -1,1 +1,1 @@
-web: java-Dserver.port=$PORT -jar target/backend-spring.jar
+web:java -jar /workspace/target/backend-spring.jar 
