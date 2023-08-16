@@ -13,7 +13,10 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +71,7 @@ public class RemitoController {
 
 
     // Agregar metadatos
-    document.addTitle("Remito - Auditoria");
+    document.addTitle("Auditoria");
     document.addAuthor("Tu Empresa");
     document.addSubject("Generación de remito");
     document.addKeywords("remito, ventas, productos");
@@ -91,7 +95,17 @@ public class RemitoController {
 
   private static void addHeader(Document document, Remito remito) throws DocumentException, IOException {
     // Agregar imagen de encabezado
-    Image logo = Image.getInstance("src/main/resources/logo.jpg");
+    // Cargar imagen
+// Cargar imagen
+    Resource imageResource = new ClassPathResource("logo.jpg");
+    InputStream imageStream = imageResource.getInputStream();
+
+// Convertir InputStream a array de bytes
+    byte[] imageBytes = IOUtils.toByteArray(imageStream);
+
+// Convertir array de bytes a objeto Image de iText
+    Image logo = Image.getInstance(imageBytes);
+
     logo.setAlignment(Element.ALIGN_CENTER);
     logo.scaleToFit(200, 200);
     document.add(logo);
@@ -212,7 +226,7 @@ public class RemitoController {
   private static void addFooter(Document document) throws DocumentException {
     // Agregar pie de página
     Font footerFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.GRAY);
-    Paragraph footer = new Paragraph("-------------------------", footerFont);
+    Paragraph footer = new Paragraph("------PROCESADO EXITOSAMENTE-----", footerFont);
     footer.setAlignment(Element.ALIGN_CENTER);
     footer.setSpacingBefore(20);
     document.add(footer);
