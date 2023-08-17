@@ -1,6 +1,8 @@
 package backendspring.com.backendspring.controller;
 
 import backendspring.com.backendspring.bbdd.dto.UserDTO;
+import backendspring.com.backendspring.bbdd.entity.Incabpie;
+import backendspring.com.backendspring.bbdd.entity.Incuerpo;
 import backendspring.com.backendspring.bbdd.entity.User;
 import backendspring.com.backendspring.entity.Archivo;
 import backendspring.com.backendspring.entity.Remito;
@@ -46,7 +48,10 @@ public class HomeController {
   private ClientController clientController;
   @Autowired
   private RemitoController remitoController;
-
+  @Autowired
+  private IncabpieController incabpieController;
+  @Autowired
+  private IncuerpoController incuerpoController;
 
   private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
@@ -409,6 +414,20 @@ public class HomeController {
 
         try {
           Remito remito = objectMapper.readValue(jsonData, Remito.class);
+          // actualizar stock de productos y materias primas
+          Incabpie newProducto = new Incabpie();
+          newProducto.setDenominacion(remito.getProducto());
+          newProducto.setStock(remito.getTotalDosificado().toString());
+          incabpieController.save(newProducto);
+
+          // actualiza stock materia prima
+          for (int i = 0; i < remito.getSubproductos().size() ; i++) {
+            Incuerpo subProducto = new Incuerpo();
+            subProducto.setDenominacion(remito.getSubproductos().get(i).getNombre());
+            subProducto.setStock(remito.getSubproductos().get(i).getCantidad().toString());
+            incuerpoController.save(subProducto);
+          }
+
           ResponseEntity<byte[]> responseEntity = RemitoController.generarRemito(remito);
           byte[] response = responseEntity.getBody();
 

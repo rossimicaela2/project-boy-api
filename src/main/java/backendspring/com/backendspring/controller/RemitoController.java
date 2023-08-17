@@ -97,7 +97,7 @@ public class RemitoController {
     // Agregar imagen de encabezado
     // Cargar imagen
 // Cargar imagen
-    Resource imageResource = new ClassPathResource("logo.jpg");
+    Resource imageResource = new ClassPathResource("logo.png");
     InputStream imageStream = imageResource.getInputStream();
 
 // Convertir InputStream a array de bytes
@@ -112,7 +112,7 @@ public class RemitoController {
 
     // Agregar título
     Font titleFont = new Font(Font.FontFamily.HELVETICA, 24, Font.BOLD, BaseColor.DARK_GRAY);
-    Paragraph title = new Paragraph("Remito - Auditoria", titleFont);
+    Paragraph title = new Paragraph("Auditoria", titleFont);
     title.setAlignment(Element.ALIGN_CENTER);
     title.setSpacingAfter(20);
     document.add(title);
@@ -120,15 +120,6 @@ public class RemitoController {
     // Crear tabla para los datos de cliente, cuit, lote y fecha
     PdfPTable table = new PdfPTable(2);
     table.setWidthPercentage(100);
-
-    // Agregar celda de cliente y cuit
-    PdfPCell clientCell = new PdfPCell(new Phrase("Cliente: " + remito.getCliente().getNombre()));
-    clientCell.setBorder(Rectangle.NO_BORDER);
-    table.addCell(clientCell);
-
-    PdfPCell cuitCell = new PdfPCell(new Phrase("Cuit: " + remito.getCliente().getCuit()));
-    cuitCell.setBorder(Rectangle.NO_BORDER);
-    table.addCell(cuitCell);
 
     // Agregar celda de lote y fecha
     Font labelFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, BaseColor.DARK_GRAY);
