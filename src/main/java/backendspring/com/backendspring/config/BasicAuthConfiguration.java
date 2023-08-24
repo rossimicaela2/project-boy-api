@@ -39,7 +39,6 @@ public class BasicAuthConfiguration {
             .requestMatchers("/update").permitAll()
             .requestMatchers("/recovery").permitAll()
             .requestMatchers("/reset").permitAll()
-            .requestMatchers("/validate").permitAll()
             .requestMatchers("/upload-excel").permitAll()
             .requestMatchers("/upload-socios").permitAll()
             .requestMatchers("/upload").permitAll()

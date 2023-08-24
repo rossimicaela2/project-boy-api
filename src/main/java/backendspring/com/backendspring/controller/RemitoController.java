@@ -192,6 +192,7 @@ public class RemitoController {
     cell.setPhrase(new Phrase("Cantidad", headerFont));
     table.addCell(cell);
 
+
     // Agregar filas de productos
     Font cellFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.BLACK);
     for (int i = 0; i < remito.getSubproductos().size() ; i++) {

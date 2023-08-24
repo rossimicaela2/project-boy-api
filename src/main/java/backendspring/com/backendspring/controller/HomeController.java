@@ -8,9 +8,8 @@ import backendspring.com.backendspring.entity.Archivo;
 import backendspring.com.backendspring.entity.Remito;
 import backendspring.com.backendspring.service.EmailService;
 import backendspring.com.backendspring.service.FileUploadService;
+import backendspring.com.backendspring.utils.JwtTokenUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -29,7 +28,6 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.Key;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -41,7 +39,6 @@ public class HomeController {
   private UserController userController;
   @Autowired
   private EmailService emailService;
-
   @Autowired
   private FileUploadService fileUploadService;
   @Autowired
@@ -53,21 +50,24 @@ public class HomeController {
   @Autowired
   private IncuerpoController incuerpoController;
 
-  private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+  @Autowired
+  private JwtTokenUtil jwtTokenUtil;
 
   /******************** LOGIN / REGISTER **********************************/
 
 
   @PostMapping("/login")
-  public ResponseEntity<Map<String, String>> login(@RequestBody User user) {
+  public ResponseEntity<Map<String, Object>> login(@RequestBody User user) {
     try {
       UserDTO userfind = userController.findByName(user.getName());
       if (userfind != null && userfind.getName().equalsIgnoreCase(user.getName()) && userfind.getPassword().equalsIgnoreCase(user.getPassword())) {
         // Genera el token JWT
-        String token = generateToken(userfind);
-        Map<String, String> response = new HashMap<>();
+        String token = jwtTokenUtil.generateToken(user.getName());
+        userController.updateUser("token", token, userfind);
+        Map<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("avatar", userfind.getAvatar());
+        response.put("roles", userfind.getRoles());
         return ResponseEntity.ok(response);
       } else{
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -78,62 +78,6 @@ public class HomeController {
     }
   }
 
-  private String generateToken(UserDTO user) {
-    Map<String, Object> claims = new HashMap<>();
-    claims.put("role", user.getRoles());
-
-    Date expirationDate = new Date(System.currentTimeMillis() + 86400000); // 24 horas de duración del token
-    return Jwts.builder()
-        .setClaims(claims)
-        .setSubject(user.getName())
-        .setExpiration(expirationDate)
-        .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
-        .compact();
-  }
-
-  @GetMapping("/user")
-  public ResponseEntity<UserDTO> getUserFromToken(@RequestHeader("Authorization") String token) {
-    try {
-      // Verificar y decodificar el token JWT
-      UserDTO user = decodeToken(token);
-      if (user != null) {
-        return ResponseEntity.ok(user);
-      } else {
-        System.out.println("NO ENCONTRADO");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
-  private UserDTO decodeToken(String token) {
-    try {
-      System.out.println("TOKEN " + token);
-      Jws<Claims> claimsJws = Jwts.parserBuilder()
-          .setSigningKey(SECRET_KEY)
-          .build()
-          .parseClaimsJws(token);
-
-      Claims claims = claimsJws.getBody();
-
-      // Extraer los datos del UserDTO del token decodificado
-      String name = claims.getSubject();
-      UserDTO userdto = userController.findByName(name);
-      return userdto;
-    } catch (MalformedJwtException e) {
-      // Manejar la excepción de token JWT malformado
-      e.printStackTrace();
-      return null;
-    } catch (Exception e) {
-      // Manejar otras excepciones
-      e.printStackTrace();
-      return null;
-    }
-  }
-
-
   @PostMapping("/register")
   public ResponseEntity<Map<String, String>> register(@RequestBody User user) {
     try {
@@ -141,9 +85,10 @@ public class HomeController {
       if (userfind != null ) { // lo va a actualizar
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
       } else{
-        userController.save(user, null);
         // Genera el token JWT
-        String token = generateToken(userfind);
+        String token = jwtTokenUtil.generateToken(user.getName());
+        user.setToken(token);
+        userController.save(user, null);
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
         return ResponseEntity.ok(response);
@@ -194,7 +139,7 @@ public class HomeController {
         UserDTO userfind = userController.findByEmail(user.getEmail());
 
         if (userfind != null) {
-          String token = generateToken(userfind);
+          String token = jwtTokenUtil.generateToken(userfind.getName());
           Boolean update = userController.updateUser("resetToken", token, userfind);
           if (update) {
             String resetUrl = "http://localhost:4200/reset-password?token=" + token;
@@ -212,27 +157,12 @@ public class HomeController {
     }
   }
 
-  @PostMapping("/validate")
-  public ResponseEntity<?> validateToken(@RequestBody User user) {
-    try {
-      UserDTO userfind = userController.findByToken(user.getResetToken());
-
-      if (userfind != null) {
-        return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
-      } else {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-    }
-  }
-
   @PostMapping("/reset")
   public ResponseEntity<?> resetPassword(@RequestBody User user) {
     try {
-      UserDTO userfind = userController.findByToken(user.getResetToken());
-
+      // Verificar y decodificar el token JWT
+      System.out.println("Received resetToken: " + user.getResetToken());
+      UserDTO userfind = decodeToken(user.getResetToken());
       if (userfind != null) {
         Boolean update = userController.updateUser("password", user.getPassword(), userfind);
         if (update) {
@@ -241,11 +171,30 @@ public class HomeController {
           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
       } else {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        System.out.println("NO ENCONTRADO");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
       }
+
     } catch (Exception e) {
       e.printStackTrace();
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
+  }
+
+
+  private UserDTO decodeToken(String token) {
+    try {
+      if (jwtTokenUtil.isTokenExpired(token)) {
+        return null;
+      } else {
+        String username = jwtTokenUtil.extractUsername(token);
+        UserDTO userdto = userController.findByName(username);
+        return userdto;
+      }
+    } catch (Exception e) {
+      // Manejar otras excepciones
+      e.printStackTrace();
+      return null;
     }
   }
 

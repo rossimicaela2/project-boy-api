@@ -9,6 +9,7 @@ public class UserDTO {
   private String email;
   private String password;
   private String resetToken;
+  private String token;
   private String activeToken;
   private List<String> roles;
   private String avatar;
@@ -47,6 +48,14 @@ public class UserDTO {
 
   public void setResetToken(String resetToken) {
     this.resetToken = resetToken;
+  }
+
+  public String getToken() {
+    return token;
+  }
+
+  public void setToken(String resetToken) {
+    this.token = token;
   }
 
   public List<String> getRoles() {

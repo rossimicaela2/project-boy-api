@@ -9,12 +9,17 @@ public class User {
   private String email;
   private String password;
   private String resetToken;
+  private String token;
   private List<String> roles; // Roles del usuario como una lista de strings
   private String avatar;
 
-  public String getResetToken() {
-    return resetToken;
+  public String getToken() { return token; }
+
+  public void setToken(String token) {
+    this.token = token;
   }
+
+  public String getResetToken() { return resetToken; }
 
   public void setResetToken(String resetToken) {
     this.resetToken = resetToken;
