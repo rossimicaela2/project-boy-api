@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class IncuerpoServiceImpl  extends GenericServiceImpl<Incuerpo, IncuerpoDTO> implements IncuerpoService {
@@ -53,4 +54,17 @@ public class IncuerpoServiceImpl  extends GenericServiceImpl<Incuerpo, IncuerpoD
 
     return null;
   }
+
+  @Override
+  public void updateStockInBatch(Map<String, String> stockUpdates) throws Exception {
+    WriteBatch batch = firestore.batch();
+
+    for (Map.Entry<String, String> entry : stockUpdates.entrySet()) {
+      DocumentReference docRef = getCollection().document(entry.getKey());
+      batch.update(docRef, "stock", entry.getValue());
+    }
+
+    batch.commit().get();
+  }
+
 }

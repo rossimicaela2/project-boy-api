@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/incuerpo")
@@ -66,5 +69,27 @@ public class IncuerpoController {
   private BigDecimal parseStockValue(String stockValue) {
     String cleanedValue = stockValue.replace(".", "").replace(",", ".");
     return new BigDecimal(cleanedValue);
+  }
+
+  public void saveAll(List<Incuerpo> productos) throws Exception {
+    Map<String, String> stockUpdates = new HashMap<>();
+
+    for (Incuerpo producto : productos) {
+      IncuerpoDTO productoDTO = incuerpoService.getProductoByName(producto.getDenominacion());
+
+      if (productoDTO == null) {
+        incuerpoService.save(producto);
+      } else {
+        // Aquí solo se recopilan los productos que necesitan actualizar el stock
+        if (!productoDTO.getStock().equals(producto.getStock())) {
+          stockUpdates.put(productoDTO.getId(), producto.getStock());
+        }
+      }
+    }
+
+    // Realizar el batch update al final del bucle
+    if (!stockUpdates.isEmpty()) {
+      incuerpoService.updateStockInBatch(stockUpdates);
+    }
   }
 }

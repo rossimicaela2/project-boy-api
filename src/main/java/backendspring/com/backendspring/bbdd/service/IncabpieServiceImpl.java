@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class IncabpieServiceImpl  extends GenericServiceImpl<Incabpie, IncabpieDTO> implements IncabpieService {
@@ -54,4 +55,15 @@ public class IncabpieServiceImpl  extends GenericServiceImpl<Incabpie, IncabpieD
     return null;
   }
 
+  @Override
+  public void updateStockInBatch(Map<String, String> stockUpdates) throws Exception {
+    WriteBatch batch = firestore.batch();
+
+    for (Map.Entry<String, String> entry : stockUpdates.entrySet()) {
+      DocumentReference docRef = getCollection().document(entry.getKey());
+      batch.update(docRef, "stock", entry.getValue());
+    }
+
+    batch.commit().get();
+  }
 }

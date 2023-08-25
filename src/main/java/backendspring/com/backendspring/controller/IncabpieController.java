@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/incabpie")
@@ -49,4 +52,28 @@ public class IncabpieController {
     }
     return new ResponseEntity<String>("OK", HttpStatus.OK);
   }
+
+
+  public void saveAll(List<Incabpie> productos) throws Exception {
+    Map<String, String> stockUpdates = new HashMap<>();
+
+    for (Incabpie producto : productos) {
+      IncabpieDTO productoDTO = incabpieService.getProductoByName(producto.getDenominacion());
+
+      if (productoDTO == null) {
+        incabpieService.save(producto);
+      } else {
+        // Aquí solo se recopilan los productos que necesitan actualizar el stock
+        if (!productoDTO.getStock().equals(producto.getStock())) {
+          stockUpdates.put(productoDTO.getId(), producto.getStock());
+        }
+      }
+    }
+
+    // Realizar el batch update al final del bucle
+    if (!stockUpdates.isEmpty()) {
+      incabpieService.updateStockInBatch(stockUpdates);
+    }
+  }
+
 }

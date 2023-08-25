@@ -1,19 +1,20 @@
 package backendspring.com.backendspring.controller;
 
+import backendspring.com.backendspring.bbdd.dto.AuditoriaDTO;
 import backendspring.com.backendspring.bbdd.dto.UserDTO;
+import backendspring.com.backendspring.bbdd.entity.Auditoria;
 import backendspring.com.backendspring.bbdd.entity.Incabpie;
 import backendspring.com.backendspring.bbdd.entity.Incuerpo;
 import backendspring.com.backendspring.bbdd.entity.User;
-import backendspring.com.backendspring.entity.Archivo;
 import backendspring.com.backendspring.entity.Remito;
 import backendspring.com.backendspring.service.EmailService;
 import backendspring.com.backendspring.service.FileUploadService;
 import backendspring.com.backendspring.utils.JwtTokenUtil;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,14 +22,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -49,6 +44,8 @@ public class HomeController {
   private IncabpieController incabpieController;
   @Autowired
   private IncuerpoController incuerpoController;
+  @Autowired
+  private AuditoriaController auditoriaController;
 
   @Autowired
   private JwtTokenUtil jwtTokenUtil;
@@ -161,7 +158,6 @@ public class HomeController {
   public ResponseEntity<?> resetPassword(@RequestBody User user) {
     try {
       // Verificar y decodificar el token JWT
-      System.out.println("Received resetToken: " + user.getResetToken());
       UserDTO userfind = decodeToken(user.getResetToken());
       if (userfind != null) {
         Boolean update = userController.updateUser("password", user.getPassword(), userfind);
@@ -200,17 +196,34 @@ public class HomeController {
 
   /******************** FUNCIONALIDADES **********************************/
 
-  @PostMapping("/upload-socios")
-  public ResponseEntity<?> uploadSocios(@RequestParam("file") MultipartFile file, @RequestParam(required = false) String sheetname) {
-    ResponseEntity<?> endPoint = this.uploadExcel(file,sheetname);
-    if ((List<Map<String, String>>) this.uploadExcel(file,sheetname).getBody() != null ) {
-      return clientController.createClients((List<Map<String, String>>) this.uploadExcel(file,sheetname).getBody());
-    } else {
-      return endPoint;
+  /**
+   * EDITAR DATOS DEL USUARIO
+   * @param token
+   * @return
+   */
+  @GetMapping("/user")
+  public ResponseEntity<UserDTO> getUserFromToken(@RequestHeader("Authorization") String token) {
+    try {
+      // Verificar y decodificar el token JWT
+      UserDTO user = decodeToken(token);
+      if (user != null) {
+        return ResponseEntity.ok(user);
+      } else {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
-    @PostMapping("/upload-excel")
+  /**
+   * SUBIR EL ARCHIVO EXCEL - PROCESARLO COMO DATOS PARA MOSTRARLO EN UNA TABLA
+   * @param file
+   * @param sheetname
+   * @return
+   */
+  @PostMapping("/upload-excel")
   public ResponseEntity<?> uploadExcel(@RequestParam("file") MultipartFile file, @RequestParam(required = false) String sheetname) {
     try {
 
@@ -278,121 +291,109 @@ public class HomeController {
     }
   }
 
-  @PostMapping("/upload")
-    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
-        try {
-          // Obtener la extensión del archivo original
-          String originalFilename = file.getOriginalFilename();
-          String extension = ".xls";
-          int extensionIndex = originalFilename.lastIndexOf('.');
-          if (extensionIndex >= 0) {
-            extension = originalFilename.substring(extensionIndex);
-          }
-          fileUploadService.uploadFile(file.getInputStream(), extension);
-          return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
-        } catch (Exception e) {
-          e.printStackTrace();
-          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-      }
-
-  @RequestMapping("/listado")
-  public List<Archivo> listarArchivos(@RequestParam(required = false) String ruta, @RequestParam(required = false) String extension) {
-    List<Archivo> archivos = new ArrayList<>();
-    String UPLOAD_DIR = System.getProperty("java.io.tmpdir") + "/upload/auditoria";
-    File directorio = new File(ruta != null ? ruta : UPLOAD_DIR); // Si no se especifica una ruta, se utiliza el directorio actual
-
-    File[] listaArchivos = directorio.listFiles();
-
-    if (listaArchivos != null) {
-      SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-
-      for (File archivo : listaArchivos) {
-        if (archivo.isFile() && !archivo.isHidden()) {
-          if (extension != null && !archivo.getName().endsWith(extension)) {
-            continue; // Si se especifica una extensión y no coincide, se salta al siguiente archivo
-          }
-
-          Archivo archivoInfo = new Archivo();
-          archivoInfo.setNombre(archivo.getName());
-          archivoInfo.setFecha(formatter.format(archivo.lastModified()));
-          archivoInfo.setUrl(archivo.getPath());
-          archivos.add(archivoInfo);
-        }
-      }
-    } else {
-      System.out.println("No se encontraron archivos en la ubicación especificada: " + ruta);
-    }
-
-    return archivos;
-  }
-
-  @GetMapping("/files/{filename}")
-  public ResponseEntity<Resource> downloadFile(@PathVariable String filename) throws IOException {
-    String UPLOAD_DIR = System.getProperty("java.io.tmpdir") + "/upload/auditoria";
-    String filePathString = UPLOAD_DIR + "/" + filename;
-    Path filePath = Paths.get(filePathString);
-
-    try {
-      Resource fileResource = new UrlResource(filePath.toUri());
-
-      if (fileResource.exists()) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
-
-        return ResponseEntity.ok()
-            .headers(headers)
-            .contentType(MediaType.APPLICATION_PDF)
-            .body(fileResource);
-      } else {
-        return ResponseEntity.notFound().build();
-      }
-    } catch (MalformedURLException e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-  }
-
+  /**
+   * PROCESAR LO SELECCIONADO EN LA TABLA DE FRONT
+   * Guardar en BBDD y generar auditoria
+   *
+   * @param payload
+   * @param token
+   * @return
+   */
   @PostMapping("/selection")
-  public ResponseEntity<String> handleSelection(@RequestBody Map<String, Object> payload) {
+  public ResponseEntity<String> handleSelection(@RequestBody Map<String, Object> payload, @RequestHeader("Authorization") String token) {
     try {
       List<Object> selectedItems = (List<Object>) payload.get("selectedItems");
-      System.out.println("LLEGA JSON: " + selectedItems);
       List<String> jsonDatas = remitoController.transformData(selectedItems);
+      List<Incabpie> newProductos = new ArrayList<>();
+      List<Incuerpo> subProductos = new ArrayList<>();
+      List<String> auditoriaData = new ArrayList<>();
+
+      ObjectMapper objectMapper = new ObjectMapper();
+
       for (String jsonData : jsonDatas) {
-        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(jsonData);
 
         try {
-          Remito remito = objectMapper.readValue(jsonData, Remito.class);
-          // actualizar stock de productos y materias primas
-          Incabpie newProducto = new Incabpie();
-          newProducto.setDenominacion(remito.getProducto());
-          newProducto.setStock(remito.getTotalDosificado().toString());
-          incabpieController.save(newProducto);
+          String productoDenominacion = jsonNode.get("producto").asText();
+          Double totalDosificado = jsonNode.get("totalDosificado").asDouble();
+          newProductos.add(createIncabpie(productoDenominacion, totalDosificado));
 
-          // actualiza stock materia prima
-          for (int i = 0; i < remito.getSubproductos().size() ; i++) {
-            Incuerpo subProducto = new Incuerpo();
-            subProducto.setDenominacion(remito.getSubproductos().get(i).getNombre());
-            subProducto.setStock(remito.getSubproductos().get(i).getCantidad().toString());
-            incuerpoController.save(subProducto);
-          }
+          ArrayNode subproductosArray = (ArrayNode) jsonNode.get("subproductos");
+          subProductos.addAll(createSubProductos(subproductosArray));
 
-          ResponseEntity<byte[]> responseEntity = RemitoController.generarRemito(remito);
-          byte[] response = responseEntity.getBody();
-
-          try (InputStream inputStream = new ByteArrayInputStream(response)) {
-            fileUploadService.uploadFile(inputStream, ".pdf");
-          } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-          }
+          auditoriaData.add(jsonData);
 
         } catch (Exception e) {
           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
       }
+
+      //incabpieController.saveAll(newProductos);
+      //incuerpoController.saveAll(subProductos);
+      UserDTO user = decodeToken(token);
+      auditoriaController.createMultipleAuditorias(auditoriaData, user);
+
       return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
+
+  private Incabpie createIncabpie(String denominacion, Double totalDosificado) {
+    Incabpie newProducto = new Incabpie();
+    newProducto.setDenominacion(denominacion);
+    newProducto.setStock(totalDosificado.toString());
+    return newProducto;
+  }
+
+  private List<Incuerpo> createSubProductos(ArrayNode subproductosArray) {
+    List<Incuerpo> subProductos = new ArrayList<>();
+    for (JsonNode subproductoNode : subproductosArray) {
+      String subProductoDenominacion = subproductoNode.get("nombre").asText();
+      Double cant = subproductoNode.get("cantidad").asDouble();
+      Incuerpo subProducto = new Incuerpo();
+      subProducto.setDenominacion(subProductoDenominacion);
+      subProducto.setStock(cant.toString());
+      subProductos.add(subProducto);
+    }
+    return subProductos;
+  }
+
+  /**
+   * Listado de auditorias creadas
+   * @param ruta
+   * @param extension
+   * @return
+   */
+  @RequestMapping("/listado")
+  public List<Auditoria> listarAuditorias(@RequestParam(required = false) String ruta, @RequestParam(required = false) String extension) {
+    return auditoriaController.getAllAuditorias();
+  }
+
+  @RequestMapping("/download")
+  public ResponseEntity<?> descargarAuditoria(@RequestParam(required = false) String nameAuditoria) {
+
+    try {
+      AuditoriaDTO audit = auditoriaController.findByName(nameAuditoria);
+      // Creo el remito que se va a descargar
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode jsonNode = objectMapper.readTree(audit.getData());
+
+      Remito remito = objectMapper.readValue(audit.getData(), Remito.class);
+      ResponseEntity<byte[]> responseEntity = RemitoController.generarRemito(remito);
+      byte[] response = responseEntity.getBody();
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_PDF);
+      headers.setContentDispositionFormData("attachment", "Auditoria.pdf");
+
+      return new ResponseEntity<>(response, headers, HttpStatus.OK);
+
+    } catch (Exception e) {
+      System.out.println(e);
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
 }

@@ -61,8 +61,6 @@ public class JwtTokenUtil {
   }
 
   private Claims extractAllClaims(String token) {
-    System.out.println("TOKEN 1 " + token);
-    System.out.println("TOKEN 2 " + Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token));
     return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
   }
 }

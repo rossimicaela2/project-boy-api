@@ -1,6 +1,5 @@
 package backendspring.com.backendspring.controller;
 
-import backendspring.com.backendspring.bbdd.dto.ClientDTO;
 import backendspring.com.backendspring.entity.Remito;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -237,7 +236,6 @@ public class RemitoController {
       // Agregar propiedades al objeto JSON nuevo
       root.put("lote", Integer.parseInt(data.get("LOTE")));
       root.put("fecha", transformFecha(data.get("FECHA")));
-      root.set("cliente", transformCliente(data.get("cliente")));
       root.put("producto", data.get("PRODUCTO"));
       root.put("codigo", Integer.parseInt(data.get("CODIGO")));
       root.put("totalDosificado", transformTotalDosificado(data.get("TOTAL DOSIFICADO")));
@@ -253,31 +251,7 @@ public class RemitoController {
         e.printStackTrace();
       }
     }
-
-    // Imprimir los JSON transformados
-    for (String transformedJson : transformedJsonList) {
-      System.out.println(transformedJson);
-    }
-
     return transformedJsonList;
-  }
-
-
-  private ObjectNode transformCliente(String cliente) {
-    System.out.println("TRANSFORMA CLIENTE: " + cliente);
-    ObjectNode clienteNode = JsonNodeFactory.instance.objectNode();
-    ClientDTO searchClient = null;
-    try {
-      searchClient = clientController.findByNombre(cliente);
-      if (searchClient != null) {
-        clienteNode.put("nombre", cliente);
-        clienteNode.put("cuit", searchClient.getCuit());
-        System.out.println("CREACION CLIENTE " + searchClient);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return clienteNode;
   }
 
   private static JsonNode transformSubproductos(Map<String, String> data) {

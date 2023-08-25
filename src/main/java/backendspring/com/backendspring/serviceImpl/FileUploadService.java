@@ -27,14 +27,12 @@ class FileUploadServiceImpl implements FileUploadService{
       Path uploadDirPath = Paths.get(UPLOAD_DIR);
       if (!Files.exists(uploadDirPath)) {
         Files.createDirectories(uploadDirPath);
-        System.out.println("Directorio de carga creado: " + uploadDirPath);
       }
 
       String fileName = "auditoria_" + fechaHoraFormateada + extension;
       Path filePath = uploadDirPath.resolve(fileName);
 
       byte[] bytes = IOUtils.toByteArray(inputStream);
-      System.out.println("Archivo a guardar: " + filePath);
       Files.write(filePath, bytes);
     } catch (IOException e) {
       // manejar excepción
