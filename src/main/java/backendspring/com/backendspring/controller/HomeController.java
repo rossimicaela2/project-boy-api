@@ -385,6 +385,7 @@ public class HomeController {
 
     try {
       AuditoriaDTO audit = auditoriaController.findByName(nameAuditoria);
+
       // Creo el remito que se va a descargar
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode jsonNode = objectMapper.readTree(audit.getData());
@@ -400,6 +401,7 @@ public class HomeController {
       return new ResponseEntity<>(response, headers, HttpStatus.OK);
 
     } catch (Exception e) {
+
       log.error("Error " + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

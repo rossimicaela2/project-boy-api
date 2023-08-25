@@ -83,14 +83,13 @@ public class AuditoriaServiceImpl extends GenericServiceImpl<Auditoria, Auditori
   public AuditoriaDTO getByName(String name) throws Exception {
     CollectionReference collection = getCollection();
 
-    Query query = collection.whereEqualTo("audit_name", name).limit(1);
+    Query query = collection.whereEqualTo("auditName", name).limit(1);
     ApiFuture<QuerySnapshot> future = query.get();
     QuerySnapshot querySnapshot = future.get();
 
     if (!querySnapshot.isEmpty()) {
       DocumentSnapshot document = querySnapshot.getDocuments().get(0);
       AuditoriaDTO audit = document.toObject(clazz);
-      System.out.println("ENCONTRO AUDITORIA IMPRIMIR" + audit.getAuditName());
       return audit;
     }
 
