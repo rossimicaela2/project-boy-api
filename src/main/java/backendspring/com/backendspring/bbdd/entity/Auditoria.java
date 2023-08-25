@@ -3,10 +3,51 @@ package backendspring.com.backendspring.bbdd.entity;
 public class Auditoria {
 
   private String data;
-  private String audit_id;
-  private String audit_name;
-  private String audit_date;
-  private String user_id;
+  private String auditId;
+  private String auditName;
+  private String auditDate;
+  private String userName;
+  private String userId;
+
+  public String getAuditId() {
+    return auditId;
+  }
+
+  public void setAuditId(String auditId) {
+    this.auditId = auditId;
+  }
+
+  public String getAuditName() {
+    return auditName;
+  }
+
+  public void setAuditName(String auditName) {
+    this.auditName = auditName;
+  }
+
+  public String getAuditDate() {
+    return auditDate;
+  }
+
+  public void setAuditDate(String auditDate) {
+    this.auditDate = auditDate;
+  }
+
+  public String getUserName() {
+    return userName;
+  }
+
+  public void setUserName(String userName) {
+    this.userName = userName;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
 
   public String getData() {
     return data;
@@ -16,36 +57,5 @@ public class Auditoria {
     this.data = data;
   }
 
-  public String getAudit_id() {
-    return audit_id;
-  }
-
-  public void setAudit_id(String audit_id) {
-    this.audit_id = audit_id;
-  }
-
-  public String getAudit_name() {
-    return audit_name;
-  }
-
-  public void setAudit_name(String audit_name) {
-    this.audit_name = audit_name;
-  }
-
-  public String getUser_id() {
-    return user_id;
-  }
-
-  public void setUser_id(String user_id) {
-    this.user_id = user_id;
-  }
-
-  public String getAudit_date() {
-    return audit_date;
-  }
-
-  public void setAudit_date(String audit_date) {
-    this.audit_date = audit_date;
-  }
 
 }

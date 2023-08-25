@@ -30,21 +30,22 @@ public class AuditoriaServiceImpl extends GenericServiceImpl<Auditoria, Auditori
     // Obtén la referencia a la colección en Firestore
     CollectionReference collection = getCollection();
 
-    collection.whereGreaterThanOrEqualTo("audit_name", query)
-        .whereLessThanOrEqualTo("audit_name", query + "\uf8ff")
+    collection.whereGreaterThanOrEqualTo("auditName", query)
+        .whereLessThanOrEqualTo("auditName", query + "\uf8ff")
         .limit(10)
         .get()
         .get()
         .getDocuments()
         .forEach(document -> {
           // Obtén el nombre del documento y agrégalo a los resultados
-          String auditName = document.getString("audit_name");
+          String auditName = document.getString("auditName");
           String auditData = document.getString("data");
-          String auditDate = document.getString("audit_date");
+          String auditDate = document.getString("auditDate");
+          String auditUser = document.getString("userName");
           Auditoria objResult = new Auditoria();
-          objResult.setAudit_name(auditName);
+          objResult.setAuditName(auditName);
           objResult.setData(auditData);
-          objResult.setAudit_date(auditDate);
+          objResult.setAuditDate(auditDate);
           results.add(objResult);
         });
 
@@ -63,13 +64,15 @@ public class AuditoriaServiceImpl extends GenericServiceImpl<Auditoria, Auditori
         .getDocuments()
         .forEach(document -> {
           // Obtén los datos del documento y agrégalo a los resultados
-          String auditName = document.getString("audit_name");
+          String auditName = document.getString("auditName");
           String auditData = document.getString("data");
-          String auditDate = document.getString("audit_date");
+          String auditDate = document.getString("auditDate");
+          String auditUser = document.getString("userName");
           Auditoria objResult = new Auditoria();
-          objResult.setAudit_name(auditName);
+          objResult.setAuditName(auditName);
           objResult.setData(auditData);
-          objResult.setAudit_date(auditDate);
+          objResult.setAuditDate(auditDate);
+          objResult.setUserName(auditUser);
           results.add(objResult);
         });
 
@@ -87,7 +90,7 @@ public class AuditoriaServiceImpl extends GenericServiceImpl<Auditoria, Auditori
     if (!querySnapshot.isEmpty()) {
       DocumentSnapshot document = querySnapshot.getDocuments().get(0);
       AuditoriaDTO audit = document.toObject(clazz);
-      System.out.println("ENCONTRO AUDITORIA IMPRIMIR" + audit.getAudit_name());
+      System.out.println("ENCONTRO AUDITORIA IMPRIMIR" + audit.getAuditName());
       return audit;
     }
 

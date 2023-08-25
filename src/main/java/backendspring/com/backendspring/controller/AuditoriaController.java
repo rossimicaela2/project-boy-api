@@ -34,7 +34,7 @@ public class AuditoriaController {
 
     Auditoria audit = new Auditoria();
     audit.setData(jsonData);
-    audit.setAudit_name("Auditoria_" + fechaHoraFormateada);
+    audit.setAuditName("Auditoria_" + fechaHoraFormateada);
 
     try {
       auditoriaService.save(audit);
@@ -57,9 +57,10 @@ public class AuditoriaController {
 
       Auditoria audit = new Auditoria();
       audit.setData(jsonData);
-      audit.setAudit_name("Auditoria_" + fechaHoraFormateada);
-      audit.setAudit_date(fechaFormateada);
-      audit.setUser_id(user.getId());
+      audit.setAuditName("Auditoria_" + fechaHoraFormateada);
+      audit.setAuditDate(fechaFormateada);
+      audit.setUserName(user.getName());
+      audit.setUserId(user.getId());
       auditoriaService.save(audit);
     }
   }

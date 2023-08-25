@@ -14,7 +14,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.poi.ss.usermodel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +32,11 @@ import java.util.*;
 @RestController
 @CrossOrigin
 public class HomeController {
+
+  private final static Logger log = LoggerFactory.getLogger(HomeController.class);
+
+  @Value("${reset.password.url}")
+  private String resetPasswordUrl;
 
   @Autowired
   private UserController userController;
@@ -65,12 +73,14 @@ public class HomeController {
         response.put("token", token);
         response.put("avatar", userfind.getAvatar());
         response.put("roles", userfind.getRoles());
+        log.info("Login Success " + userfind.getName());
         return ResponseEntity.ok(response);
       } else{
+        log.error("Login error ");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Login error " + e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
   }
@@ -88,10 +98,11 @@ public class HomeController {
         userController.save(user, null);
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
+        log.info("Register Success " + user.getName());
         return ResponseEntity.ok(response);
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Register error " + e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
   }
@@ -99,7 +110,6 @@ public class HomeController {
   @PostMapping("/update")
   public ResponseEntity<?> update(@RequestParam("name") String name, @RequestParam("email") String email, @RequestParam("avatar") MultipartFile avatar) {
     try {
-      System.out.println("UPDATE USER");
       UserDTO userfind = userController.findByName(name);
       if (userfind != null ) { // lo va a actualizar BUSCAR CLONAR OBJETOS
         System.out.println("UPDATE USER 2");
@@ -119,13 +129,13 @@ public class HomeController {
           user.setAvatar(userfind.getAvatar());
         }
         userController.save(user, userfind.getId());
-
+        log.info("Update Success " + user.getName());
         return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
       } else{
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Register error " + e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
   }
@@ -139,7 +149,7 @@ public class HomeController {
           String token = jwtTokenUtil.generateToken(userfind.getName());
           Boolean update = userController.updateUser("resetToken", token, userfind);
           if (update) {
-            String resetUrl = "http://localhost:4200/reset-password?token=" + token;
+            String resetUrl = resetPasswordUrl + "?token=" + token;
             emailService.sendEmail(userfind.getEmail(), resetUrl);
           } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
@@ -149,7 +159,7 @@ public class HomeController {
         }
       return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Recovery error " + e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
   }
@@ -167,12 +177,12 @@ public class HomeController {
           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
       } else {
-        System.out.println("NO ENCONTRADO");
+        log.error("Reset error ");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
       }
 
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Reset error " + e);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
     }
   }
@@ -188,8 +198,7 @@ public class HomeController {
         return userdto;
       }
     } catch (Exception e) {
-      // Manejar otras excepciones
-      e.printStackTrace();
+      log.error("Token error " + e);
       return null;
     }
   }
@@ -212,7 +221,7 @@ public class HomeController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("Error " + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
@@ -259,10 +268,10 @@ public class HomeController {
         jsonData.add(rowData);
       }
 
-      System.out.println(jsonData);
+      log.info("Upload Success ");
       return ResponseEntity.ok(jsonData);
     } catch (IOException e) {
-      System.out.println("ERROR" + e);
+      log.error("Error " + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
@@ -335,6 +344,7 @@ public class HomeController {
 
       return ResponseEntity.ok().body("{\"status\": \"SUCCESS\"}");
     } catch (Exception e) {
+      log.error("Error " + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
@@ -390,8 +400,7 @@ public class HomeController {
       return new ResponseEntity<>(response, headers, HttpStatus.OK);
 
     } catch (Exception e) {
-      System.out.println(e);
-      e.printStackTrace();
+      log.error("Error " + e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
